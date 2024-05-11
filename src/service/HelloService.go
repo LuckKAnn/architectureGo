@@ -1,4 +1,4 @@
-package servicce
+package service
 
 import (
 	"fmt"
