@@ -24,6 +24,7 @@ func AddBodyParam(c *gin.Context) {
 
 func SayHello(c *gin.Context) {
 	ip := getHostIp()
+	fmt.Println()
 	c.String(200, "Hello, LuckKun V1 , IP:"+ip)
 }
 func getHostIp() string {

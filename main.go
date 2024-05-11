@@ -1,18 +1,22 @@
 package main
 
 import (
-	"ginDemo/src/service"
-	"github.com/gin-gonic/gin"
+	"fmt"
+	"ginDemo/pkg/setting"
+	"ginDemo/routers"
+	"net/http"
 )
 
 func main() {
-	r := gin.Default()
-	r.GET("/", service.SayHello)
-	r.POST("/add", service.AddBodyParam)
-	r.PUT("/user", service.AddUser)
-	r.GET("/user", service.SelectByAge)
-	r.GET("/user/id", service.SelectById)
-	r.GET("/user/insert", service.AddUser)
+	r := routers.InitGinServer()
+	s := &http.Server{
+		Addr:           fmt.Sprintf(":%d", setting.HTTPPort),
+		Handler:        r,
+		ReadTimeout:    setting.ReadTimeout,
+		WriteTimeout:   setting.WriteTimeout,
+		MaxHeaderBytes: 1 << 20,
+	}
 
-	r.Run() // listen and serve on 0.0.0.0:8080
+	s.ListenAndServe()
+	//r.Run() // listen and serve on 0.0.0.0:8080
 }
