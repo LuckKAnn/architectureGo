@@ -14,7 +14,8 @@ import (
 
 // 获取单个文章
 func GetArticle(c *gin.Context) {
-	id := com.StrTo(c.Query("id")).MustInt()
+	// 传输路径上面的参数，应该用param
+	id := com.StrTo(c.Param("id")).MustInt()
 	validator := validation.Validation{}
 	validator.Min(id, 1, "id").Message("ID必须大于0")
 
