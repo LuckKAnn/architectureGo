@@ -1,7 +1,9 @@
 package routers
 
 import (
+	"ginDemo/middleware/jwt"
 	"ginDemo/pkg/setting"
+	"ginDemo/routers/api"
 	v1 "ginDemo/routers/api/v1"
 	"ginDemo/src/service"
 	"github.com/gin-gonic/gin"
@@ -13,6 +15,8 @@ func InitGinServer() *gin.Engine {
 	r.Use(gin.Logger())
 	r.Use(gin.Recovery())
 	gin.SetMode(setting.RunMode)
+	r.GET("/auth", api.GetAuth)
+
 	r.GET("/", service.SayHello)
 	r.POST("/add", service.AddBodyParam)
 	r.PUT("/user", service.AddUser)
@@ -21,6 +25,8 @@ func InitGinServer() *gin.Engine {
 	r.GET("/user/insert", service.AddUser)
 
 	apiV1 := r.Group("/api/v1")
+	// 针对某组api开启token校验
+	apiV1.Use(jwt.JWT())
 	{
 		//获取标签列表
 		apiV1.GET("/tags", v1.GetTags)
