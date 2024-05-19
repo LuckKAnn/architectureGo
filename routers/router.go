@@ -3,10 +3,12 @@ package routers
 import (
 	"ginDemo/middleware/jwt"
 	"ginDemo/pkg/setting"
+	"ginDemo/pkg/upload"
 	"ginDemo/routers/api"
 	v1 "ginDemo/routers/api/v1"
 	"ginDemo/src/service"
 	"github.com/gin-gonic/gin"
+	"net/http"
 )
 
 func InitGinServer() *gin.Engine {
@@ -16,6 +18,9 @@ func InitGinServer() *gin.Engine {
 	r.Use(gin.Recovery())
 	gin.SetMode(setting.RunMode)
 	r.GET("/auth", api.GetAuth)
+	r.POST("/upload", api.UploadImage)
+	// 增加本地静态文件的访问
+	r.StaticFS("/upload/images", http.Dir(upload.GetImageFullPath()))
 
 	r.GET("/", service.SayHello)
 	r.POST("/add", service.AddBodyParam)
