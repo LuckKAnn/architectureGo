@@ -1,4 +1,6 @@
+# 下载的是完整的golang编译和运行时环境，还包括gcc、build之类的工具
 FROM golang:latest
+
 
 ENV GO111MODULE=on \
         GOPROXY=https://goproxy.cn,direct
@@ -8,5 +10,8 @@ WORKDIR /app
 COPY . /app
 RUN go build .
 
-EXPOSE 8080
+# 声明运行时容器提供的服务端口，可以修改
+EXPOSE 8000
+
+# 容器启动程序及参数
 ENTRYPOINT ["./ginDemo"]

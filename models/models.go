@@ -18,17 +18,14 @@ type Model struct {
 	ModifiedOn int `json:"modified_on"`
 }
 
-func init() {
-	sec, err := setting.Cfg.GetSection("database")
-	if err != nil {
-		log.Fatalf("Fatal to load database conf: %v", err)
-	}
-	dbType := sec.Key("TYPE").String()
-	dbName := sec.Key("NAME").String()
-	user := sec.Key("USER").String()
-	password := sec.Key("PASSWORD").String()
-	host := sec.Key("HOST").String()
-	tablePrefix := sec.Key("TABLE_PREFIX").String()
+func Setup() {
+	var err error
+	dbType := setting.DatabaseSetting.Type
+	dbName := setting.DatabaseSetting.Name
+	user := setting.DatabaseSetting.User
+	password := setting.DatabaseSetting.Password
+	host := setting.DatabaseSetting.Host
+	tablePrefix := setting.DatabaseSetting.TablePrefix
 	dsn := fmt.Sprintf("%s:%s@tcp(%s)/%s?charset=utf8&parseTime=True&loc=Local",
 		user,
 		password,

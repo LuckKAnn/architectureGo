@@ -28,10 +28,15 @@ const (
 	FATAL
 )
 
-func init() {
+func Setup() {
+	var err error
 	path := getLogFileFullPath()
-	F = openLogFile(path)
+	F, err = openLogFile(path)
+	if err != nil {
+		log.Fatalln(err)
+	}
 	logger = log.New(F, DefaultPrefix, log.LstdFlags)
+
 }
 
 // 实际上，现在log日志的问题在于，没有解析出来通配符的情况，这里只用用的printLn
