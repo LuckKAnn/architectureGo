@@ -2,9 +2,11 @@ package v1
 
 import (
 	"ginDemo/models"
+	"ginDemo/pkg/app"
 	"ginDemo/pkg/e"
 	"ginDemo/pkg/setting"
 	"ginDemo/pkg/util"
+	"ginDemo/service/article_service"
 	"github.com/astaxie/beego/validation"
 	"github.com/gin-gonic/gin"
 	"github.com/unknwon/com"
@@ -14,68 +16,89 @@ import (
 
 // 获取单个文章
 func GetArticle(c *gin.Context) {
+	appG := app.Gin{c}
 	// 传输路径上面的参数，应该用param
+	// 快乐路径的写法
 	id := com.StrTo(c.Param("id")).MustInt()
 	validator := validation.Validation{}
 	validator.Min(id, 1, "id").Message("ID必须大于0")
 
-	state := e.SUCCESS
 	if validator.HasErrors() {
-		for _, err := range validator.Errors {
-			log.Printf("err.key: %s, err.message: %s", err.Key, err.Message)
-		}
-		state = e.INVALID_PARAMS
+		app.MarkErrors(validator.Errors)
+		appG.Response(http.StatusOK, e.INVALID_PARAMS, nil)
+		return
 	}
 	// 判定是否存在
-	existArticle := models.ExistsById(id)
-	if !existArticle {
-		state = e.ERROR_NOT_EXIST_ARTICLE
+	articleService := article_service.Article{ID: id}
+	exists, err := articleService.ExistByID()
+	if err != nil {
+		appG.Response(http.StatusOK, e.ERROR_CHECK_EXIST_ARTICLE_FAIL, nil)
+		return
 	}
-	data := models.SelectById(id)
-	c.JSON(http.StatusOK, gin.H{
-		"code": state,
-		"msg":  e.GetMsg(state),
-		"data": data,
-	})
+	if !exists {
+		appG.Response(http.StatusOK, e.ERROR_NOT_EXIST_ARTICLE, nil)
+		return
+	}
+
+	article, err := articleService.Get()
+	if err != nil {
+		appG.Response(http.StatusOK, e.ERROR_GET_ARTICLE_FAIL, nil)
+		return
+	}
+	appG.Response(http.StatusOK, e.SUCCESS, article)
 }
 
 // 获取多个文章
 func GetArticles(c *gin.Context) {
 
 	datas := make(map[string]interface{})
-	maps := make(map[string]interface{})
 	validator := validation.Validation{}
+	appG := app.Gin{c}
+
+	var (
+		state int
+		tagId int
+	)
 
 	if arg := c.Query("state"); arg != "" {
 		// 存在state
-		state := com.StrTo(arg).MustInt()
-		maps["state"] = state
+		state = com.StrTo(arg).MustInt()
 		validator.Range(state, 0, 1, "state").Message("状态只允许为0/1")
 	}
 
 	if arg := c.Query("tag_id"); arg != "" {
-		tagId := com.StrTo(arg).MustInt()
-		maps["tagId"] = tagId
+		tagId = com.StrTo(arg).MustInt()
 		validator.Min(tagId, 1, "tagId").Message("tagId必须大于0")
 	}
-
-	code := e.SUCCESS
-
 	if validator.HasErrors() {
-		code = e.INVALID_PARAMS
-		for _, err := range validator.Errors {
-			log.Printf("err.key: %s, err.message:%s", err.Key, err.Message)
-		}
+		app.MarkErrors(validator.Errors)
+		appG.Response(http.StatusOK, e.INVALID_PARAMS, nil)
+		return
 	}
 
-	datas["lists"] = models.GetArticles(util.GetPage(c), setting.PageSize, maps)
-	datas["total"] = models.GetArticleTotal(maps)
+	// 创建DTO对象
+	// 调用DTO的方法
+	articleService := article_service.Article{
+		TagID:    tagId,
+		State:    state,
+		PageNum:  util.GetPage(c),
+		PageSize: setting.AppSetting.PageSize,
+	}
+	total, err := articleService.Count()
+	if err != nil {
+		appG.Response(http.StatusInternalServerError, e.ERROR_COUNT_ARTICLE_FAIL, nil)
+		return
+	}
 
-	c.JSON(http.StatusOK, gin.H{
-		"code":    code,
-		"message": e.GetMsg(code),
-		"data":    datas,
-	})
+	articles, err := articleService.GetAll()
+	if err != nil {
+		appG.Response(http.StatusInternalServerError, e.ERROR_GET_ARTICLES_FAIL, nil)
+		return
+	}
+	datas["lists"] = articles
+	datas["total"] = total
+
+	appG.Response(http.StatusOK, e.SUCCESS, datas)
 }
 
 // 新增文章
@@ -149,7 +172,7 @@ func EditArticle(c *gin.Context) {
 
 	code := e.INVALID_PARAMS
 	if !valid.HasErrors() {
-		if models.ExistsById(id) {
+		if flag, _ := models.ExistsById(id); flag {
 			if models.ExistTagById(tagId) {
 				data := make(map[string]interface{})
 				if tagId > 0 {
@@ -197,7 +220,7 @@ func DeleteArticle(c *gin.Context) {
 
 	code := e.INVALID_PARAMS
 	if !valid.HasErrors() {
-		if models.ExistsById(id) {
+		if flag, _ := models.ExistsById(id); flag {
 			models.DeleteArticle(id)
 			code = e.SUCCESS
 		} else {

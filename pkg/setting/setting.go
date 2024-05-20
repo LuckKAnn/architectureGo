@@ -42,6 +42,16 @@ type Database struct {
 	TablePrefix string
 }
 
+type RedisConfig struct {
+	Host        string
+	Password    string
+	MaxIdle     int
+	MaxActive   int
+	IdleTimeout int
+}
+
+var RedisSetting = &RedisConfig{}
+
 var DatabaseSetting = &Database{}
 
 // 全局变量配置

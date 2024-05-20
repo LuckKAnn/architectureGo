@@ -18,37 +18,58 @@ type Article struct {
 	State      int    `json:"state"`
 }
 
-func ExistsById(id int) bool {
+func ExistsById(id int) (bool, error) {
 	var article Article
 	log.Println(id)
-	db.Select("id").Where("id = ?", id).First(&article)
-	return article.ID > 0
+	tx := db.Select("id").Where("id = ?", id).First(&article)
+
+	if tx.Error != nil && tx.Error != gorm.ErrRecordNotFound {
+		return false, tx.Error
+	}
+
+	return article.ID > 0, nil
 }
-func SelectById(id int) (article Article) {
+func SelectById(id int) (article Article, err error) {
 	var tag Tag
-	db.Where("id = ?", id).First(&article)
-	//db.Model(&article).Related(&article.Tag)
+	tx := db.Where("id = ?", id).First(&article)
+
+	if tx.Error != nil {
+		return article, tx.Error
+	}
+	//db.Model(&article_service).Related(&article_service.Tag)
 	// 关联查询
-	db.Model(&article).Association("Tag").Find(&tag)
+	err = db.Model(&article).Association("Tag").Find(&tag)
+	if err != nil {
+		return article, tx.Error
+	}
 	article.Tag = tag
 	//log.Println(tag)
 	return
 }
 
-func GetArticleTotal(maps interface{}) (count int64) {
-	db.Model(&Article{}).Where(maps).Count(&count)
-	return
+func GetArticleTotal(maps interface{}) (count int64, err error) {
+	tx := db.Model(&Article{}).Where(maps).Count(&count)
+
+	return count, tx.Error
 }
 
-func GetArticles(pageNum int, pageSize int, maps interface{}) (articles []Article) {
+func GetArticles(pageNum int, pageSize int, maps interface{}) (articles []*Article, err error) {
 	// preLoad等价于提前把Tag查出来，之后可以直接注入到article内部
-	db.Preload("Tag").Where(maps).Offset(pageNum).Limit(pageSize).Find(&articles)
+	tx := db.Preload("Tag").Where(maps).Offset(pageNum).Limit(pageSize).Find(&articles)
+	if tx.Error != nil {
+
+		return articles, tx.Error
+	}
 	return
 }
-func EditArticle(id int, data interface{}) bool {
+func EditArticle(id int, data interface{}) error {
 	// 这里用Model先定义了是什么表的感觉
-	db.Model(&Article{}).Where("id = ?", id).Updates(data)
-	return true
+	tx := db.Model(&Article{}).Where("id = ?", id).Updates(data)
+
+	if tx.Error != nil {
+		return tx.Error
+	}
+	return nil
 }
 func AddArticle(data map[string]interface{}) bool {
 	//v表示一个接口值，I表示接口类型。这个实际就是Golang中的类型断言
@@ -64,10 +85,12 @@ func AddArticle(data map[string]interface{}) bool {
 
 	return true
 }
-func DeleteArticle(id int) bool {
-	db.Where("id = ?", id).Delete(Article{})
-
-	return true
+func DeleteArticle(id int) error {
+	tx := db.Where("id = ?", id).Delete(Article{})
+	if tx.Error != nil && tx.Error != gorm.ErrRecordNotFound {
+		return tx.Error
+	}
+	return nil
 }
 func (article Article) TableName() string {
 	return "blog_article"
