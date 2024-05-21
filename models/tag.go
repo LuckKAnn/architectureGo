@@ -21,8 +21,12 @@ func (tag Tag) TableName() string {
 }
 
 // 这个map是什么呢
-func GetTags(pageNum int, pageSize int, maps interface{}) (tags []Tag) {
-	db.Where(maps).Offset(pageNum).Limit(pageSize).Find(&tags)
+func GetTags(pageNum int, pageSize int, maps interface{}) (tags []Tag, err error) {
+	tx := db.Where(maps).Offset(pageNum).Limit(pageSize).Find(&tags)
+
+	if tx.Error != nil && tx.Error != gorm.ErrRecordNotFound {
+		return nil, tx.Error
+	}
 	return
 }
 
