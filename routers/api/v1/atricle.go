@@ -4,10 +4,12 @@ import (
 	"ginDemo/models"
 	"ginDemo/pkg/app"
 	"ginDemo/pkg/e"
+	"ginDemo/pkg/qrcode"
 	"ginDemo/pkg/setting"
 	"ginDemo/pkg/util"
 	"ginDemo/service/article_service"
 	"github.com/astaxie/beego/validation"
+	"github.com/boombuler/barcode/qr"
 	"github.com/gin-gonic/gin"
 	"github.com/unknwon/com"
 	"log"
@@ -236,5 +238,43 @@ func DeleteArticle(c *gin.Context) {
 		"code": code,
 		"msg":  e.GetMsg(code),
 		"data": make(map[string]string),
+	})
+}
+
+const (
+	QRCODE_URL = "https://github.com/LuckKAnn"
+)
+
+func GenerateArticlePoster(c *gin.Context) {
+	appG := app.Gin{c}
+	article := &article_service.Article{}
+	qr := qrcode.NewQrCode(QRCODE_URL, 300, 300, qr.M, qr.Auto) // 目前写死 gin 系列路径，可自行增加业务逻辑
+	posterName := article_service.GetPosterFlag() + "-" + qrcode.GetQrCodeFileName(qr.URL) + qr.GetQrCodeExt()
+	articlePoster := article_service.NewArticlePoster(posterName, article, qr)
+	articlePosterBgService := article_service.NewArticlePosterBg(
+		"bg.jpg",
+		articlePoster,
+		&article_service.Rect{
+			X0: 0,
+			Y0: 0,
+			X1: 550,
+			Y1: 700,
+		},
+		&article_service.Pt{
+			X: 125,
+			Y: 298,
+		},
+	)
+
+	_, filePath, err := articlePosterBgService.Generate()
+	if err != nil {
+		log.Println(err)
+		appG.Response(http.StatusOK, e.ERROR_GEN_ARTICLE_POSTER_FAIL, nil)
+		return
+	}
+
+	appG.Response(http.StatusOK, e.SUCCESS, map[string]string{
+		"poster_url":      qrcode.GetQrCodeFullUrl(posterName),
+		"poster_save_url": filePath + posterName,
 	})
 }

@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"ginDemo/models"
+	"ginDemo/pkg/gredis"
 	"ginDemo/pkg/logging"
 	"ginDemo/pkg/setting"
 	"ginDemo/routers"
@@ -15,6 +16,7 @@ func main() {
 	setting.Setup()
 	models.Setup()
 	logging.Setup()
+	gredis.Setup()
 	endless.DefaultReadTimeOut = setting.ServerSetting.ReadTimeout
 	endless.DefaultWriteTimeOut = setting.ServerSetting.WriteTimeout
 	endless.DefaultMaxHeaderBytes = 1 << 20
